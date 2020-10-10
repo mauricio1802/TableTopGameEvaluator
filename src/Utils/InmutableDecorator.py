@@ -1,4 +1,6 @@
 
+class SetAttributeError(Exception):
+    pass
     
 def Inmutator(aClass):
     class Inmutable:
