@@ -59,9 +59,22 @@ class ChangeTurn(SystemMechanic):
         return create_game_state(table_state, [])
 
 
-
-
-
+def ttt_end_condition(state):
+    board = state.table_state.board
+    end_result = [-1, -1]
+    for row in range(3):
+        if board[3 * row + 0]  == board[3 * row + 1] == board[3 * row + 2]:
+            if board[3 * row + 0] != -1:
+                end_result[board[3 * row + 0]] = 1
+                return end_result
+    for col in range(3):
+        if board[col] == board [3 + col] == board[6 + col]:
+            if board[col] != -1:
+                end_result[board[col]] = 1
+                return end_result
+    if board.count(-1) == 0:
+        return [0, 0]
+    return None
 
     
 if __name__ == '__main__':
@@ -74,6 +87,6 @@ if __name__ == '__main__':
     player1 = TicTacToePlayer("1", 0)
     player2 = TicTacToePlayer("2", 1)
     
-    game = Game(play, create_game_state(TTTTableState(), []), [player1, player2])
+    game = Game(play, create_game_state(TTTTableState(), []), [player1, player2], ttt_end_condition)
     for s in game:
         print(s)
