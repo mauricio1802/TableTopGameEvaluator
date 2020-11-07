@@ -9,6 +9,17 @@ class TTTTableState(TableState):
         self.board = [ -1 for _ in range(9) ]
         self.player_in_turn = 0
     
+    def __repr__(self):
+        char = {0 : "O", 1 : "X", -1:" "}
+        s1 = f"Player in turn: {self.player_in_turn}" 
+        s2 = f"{char[self.board[0]]} | {char[self.board[1]]} | {char[self.board[2]]}"
+        s3 = "--|---|--"
+        s4 = f"{char[self.board[3]]} | {char[self.board[4]]} | {char[self.board[5]]}"
+        s5 = "--|---|--"
+        s6 = f"{char[self.board[6]]} | {char[self.board[7]]} | {char[self.board[8]]}"
+        board = "\n".join([s1, s2, s3, s4, s5, s6])
+        return board
+
 class PutMark(Play):
     def __init__(self, row, col, mark):
         self.row = row
