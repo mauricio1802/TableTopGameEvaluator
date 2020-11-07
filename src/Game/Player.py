@@ -1,12 +1,9 @@
 from .State import State
-
-class Play:
-    def __init__(self, *args, **kwargs):
-        raise NotImplementedError
+from .Action import Action
 
 class Player:
     def __init__(self, name = ""):
         raise NotImplementedError
     
-    def play(self, state: State, mechanic ) -> Play:
+    def get_action(self, state):
         raise NotImplementedError
