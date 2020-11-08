@@ -1,79 +1,126 @@
 from Game.State import TableState, State, create_game_state
-from Game.FlowGraph import FlowNode
-from Game.Mechanics import SystemMechanic, PlayerMechanic
-from Game.Player import Player, Play
-from Game.Game import Game
+from Game.Action import Action 
+from Game.GameNode import GameNode
+from Game.Game import Game, GameSimulation
+from Game.Player import Player
 
 class TTTTableState(TableState):
     def __init__(self):
         self.board = [ -1 for _ in range(9) ]
         self.player_in_turn = 0
     
-class PutMark(Play):
-    def __init__(self, row, col, mark):
+
+    def __repr__(self):
+        char = {0:'O', 1:'X', -1:' '}
+        s1 = f"{char[self.board[0]]} | {char[self.board[1]]} | {char[self.board[2]]}"
+        s2 = "--|---|--"
+        s3 = f"{char[self.board[3]]} | {char[self.board[4]]} | {char[self.board[5]]}"
+        s4 = "--|---|--"
+        s5 = f"{char[self.board[6]]} | {char[self.board[7]]} | {char[self.board[8]]}"
+        return "\n".join(["\n",s1, s2, s3, s4, s5, "\n"])
+
+
+class PlayO(Action):
+    def __init__(self, row, col):
         self.row = row
         self.col = col
-        self.mark = mark
-
-class TicTacToePlayer(Player):
-    def __init__(self, name, mark):
-        self.name = name
-        self.mark = mark
-
-    def play(self, state: State, mechanic: PlayerMechanic):
-        print(state.table_state.board)
-        row = int(input("Insert Row to play\n"))
-        col = int(input("Insert Column to play\n"))
-        return PutMark(row, col, self.mark)
-
-
-class WhereToPlay(PlayerMechanic):
-    @staticmethod
-    def is_valid(state: State, play: PutMark) -> bool:
+    
+    def reduce(self, state):
         table_state = state.table_state
-        if play.mark != table_state.player_in_turn:
+        table_state.board[self.row * 3 + self.col] = 0
+        return create_game_state(table_state, [])
+    
+    def is_valid(self, state):
+        table_state = state.table_state
+        if table_state.player_in_turn != 0:
             return False
-        if play.row < 0 or play.row > 2:
+        if self.row < 0 or self.row > 2 or self.col < 0 or self.col > 2:
             return False
-        if play.col < 0 or play.col > 2:
-            return False
-        if table_state.board[play.row * 3 + play.col] != -1:
+        if table_state.board[self.row * 3 + self.col] != -1:
             return False
         return True
+
+class PlayX(Action):
+    def __init__(self, row, col):
+        self.row = row
+        self.col = col
     
-    @staticmethod
-    def reduce(state: State, play: PutMark) -> State:
+    def reduce(self, state):
         table_state = state.table_state
-        table_state.board[play.row * 3 + play.col] = play.mark
+        table_state.board[self.row * 3 + self.col] = 1
         return create_game_state(table_state, [])
-
-    @staticmethod
-    def who_plays(state):
-        return state.table_state.player_in_turn
-
-class ChangeTurn(SystemMechanic):
-    @staticmethod
-    def reduce(state: State):
-        table_state = state.table_state
-        table_state.player_in_turn = (table_state.player_in_turn + 1) % 2
-        return create_game_state(table_state, [])
-
-
-
-
-
-
     
+    def is_valid(self, state):
+        table_state = state.table_state
+        if table_state.player_in_turn != 1:
+            return False
+        if self.row < 0 or self.row > 2 or self.col < 0 or self.col > 2:
+            return False
+        if table_state.board[self.row * 3 + self.col] != -1:
+            return False
+        return True
+
+class ChangeTurn(Action):
+    def __init__(self):
+        pass
+    
+    def is_valid(self, state):
+        return True
+    
+    def reduce(self, state):
+        state.table_state.player_in_turn = (state.table_state.player_in_turn + 1) % 2
+        return state
+
+class TTTHumanPlayer(Player):
+    def __init__(self, name, player):
+        self.name = name
+        self.player = player
+    
+    def get_action(self, state):
+        row = int(input("Insert row to play:\n"))
+        col = int(input("Insert col to play:\n"))
+        if self.player == 0:
+            return PlayO(row, col)
+        if self.player == 1:
+            return PlayX(row, col)
+        
+    
+
+
+def ttt_who_plays(state):
+    return state.table_state.player_in_turn
+
+def ttt_end_condition(state):
+    board = state.table_state.board
+    result = [-1, -1]
+    for row in range(3):
+        if (board[row * 3] == board[row * 3 + 1] == board[row * 3 + 2]) and board[row * 3] != -1:
+            result[board[row * 3]] = 1
+            return result
+    for col in range(3):
+        if (board[col] == board[col + 3] == board[col + 6]) and board[col] != -1:
+            result[board[col]] = 1
+            return result
+    if (board[0] == board[4] == board[8]) and board[0] != -1:
+        result[board[0]] = 1
+        return result
+    if (board[2] == board[4] == board[6]) and board[2] != -1:
+        result[board[2]] = 1
+        return result
+    if board.count(-1) == 0:
+        return [0, 0]
+    return None
+
+
 if __name__ == '__main__':
-    play = FlowNode("Play")
-    change = FlowNode("ChangeTurn")
-    play.set_mechanic(WhereToPlay)
-    change.set_mechanic(ChangeTurn)
-    play.add_transition(change, lambda x, y : True)
-    change.add_transition(play, lambda x, y : True)
-    player1 = TicTacToePlayer("1", 0)
-    player2 = TicTacToePlayer("2", 1)
-    
-    game = Game(play, create_game_state(TTTTableState(), []), [player1, player2])
-    for s in game:
+    playO = GameNode('playO', [ChangeTurn()])
+    playX = GameNode('playX', [ChangeTurn()])
+    playO.add_transition(playX, lambda x, y : True)
+    playX.add_transition(playO, lambda x, y : True)
+    ttt_game = Game(create_game_state(TTTTableState(), []), playO )
+    game_sim = GameSimulation(ttt_game, [TTTHumanPlayer("O", 0), TTTHumanPlayer("X", 1)], ttt_end_condition, ttt_who_plays)
+    for s in game_sim:
+        pass
+    game_states = [g.state for g in game_sim.history]
+    for s in game_states:
         print(s)
