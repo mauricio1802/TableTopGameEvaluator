@@ -8,4 +8,4 @@ class Action:
         raise NotImplementedError
     
     def is_valid(self, state):
-        raise NotImplementedError
+        return True
