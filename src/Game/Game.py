@@ -1,41 +1,114 @@
 from .State import State, create_game_state
 from copy import deepcopy
 
-class Game:
-    def __init__(self, state, game_node):
-        self.state = state
-        self.game_node = game_node
-    
-    def play(self, action):
-        new_state, new_node = self.game_node.go(deepcopy(self.state), action)
-        return (new_state, new_node)
+DEFAULT_NODE_NAME = "NoPossiblePath"
 
-class GameSimulation:
-    def __init__(self, game, players, end_condition, who_plays):
-        self.players = players
-        self.end_condition = end_condition
-        self.who_plays = who_plays
-        self.history = [ game ]
-        self.end_results = [0 for _ in range(len(players))]
+class NoPossiblePathError(Exception):
+    pass
+
+class GameNode():
+    def __init__(self, name, prev = [], after = [], default = DEFAULT_NODE_NAME):
+        self.name = name
+        self.prev = prev
+        self.after = after
+        self.default = default
+        self.actions = []
     
-    @property
-    def game(self):
-        return self.history[-1]
+    def add_action(self, action):
+        self.actions.append(action)
+
+NoPossiblePathNode = GameNode(DEFAULT_NODE_NAME)
+
+def no_possible_path():
+    raise NoPossiblePathError 
+
+NoPossiblePathNode.add_action((no_possible_path, False))
+
+
+class Game:
+    def __init__(self, start, nodes, go_table, state, players, who_plays, end_condition):
+        self.actual = start
+        self.nodes = nodes
+        self.go_table = go_table
+        self.state_history = [ state ]
+        self.players = players
+        self.who_plays = who_plays
+        self.end_condition = end_condition
+        self.last_play = None
+        self.end_result = None
+    
 
     def __iter__(self):
         return self
     
     def __next__(self):
-        end_results = self.end_condition(self.game.state)
-        if end_results is not None:
-            self.end_results = end_results
-            raise StopIteration
-
-        player = self.players[ self.who_plays(self.game.state) ]
-        action = player.get_action(self.game.state)
-
-        new_state, new_node = self.game.play(action)
-        self.history.append(Game(new_state, new_node))
+        actual = self.nodes[self.actual]
+        #Execute previous actions
+        for node in actual.prev:
+            for require_play, act in self.nodes[node].actions:
+                if require_play:
+                    player = self.players[self.who_plays(deepcopy(self.actual_state))]
+                    self.last_play = player.get_play(deepcopy(self.actual_state))
+                    self.state_history.append(act(deepcopy(self.actual_state), self.last_play))
+                else:
+                    self.state_history.append(act(deepcopy(self.actual_state)))
         
-        return new_state
+        #Execute node actions
+        for require_play, act in actual.actions:
+            if require_play:
+                player = self.players[self.who_plays(deepcopy(self.actual_state))]
+                self.last_play = player.get_play(deepcopy(self.actual_state))
+                self.state_history.append(act(deepcopy(self.actual_state), self.last_play))
+            else:
+                self.state_history.append(act(deepcopy(self.actual_state)))
 
+        #Execute after action
+        for node in actual.after:
+            for require_play, act in self.nodes[node].actions:
+                if require_play:
+                    player = self.players[self.who_plays(deepcopy(self.actual_state))]
+                    self.last_play = player.get_play(deepcopy(self.actual_state))
+                    self.state_history.append(act(deepcopy(self.actual_state), self.last_play))
+                else:
+                    self.state_history.append(act(deepcopy(self.actual_state)))
+        
+        #UpdateActual
+        for require_play, to, cond in self.go_table[self.actual]:
+            go = cond(self.last_play) if require_play else cond()
+            if go:
+                self.actual = to
+                self.last_play = None
+                break
+        
+        self.end_result = self.end_condition(deepcopy(self.actual_state))
+        if self.end_result:
+            raise StopIteration
+        
+        return self.actual_state
+
+
+
+
+    @property
+    def actual_state(self):
+        return self.state_history[-1]
+
+class GameDescriptor:
+    def __init__(self, start_node, nodes):
+        self.start = start_node
+        self.nodes = { DEFAULT_NODE_NAME : NoPossiblePathNode }
+        self.nodes.update({ node.name : node for node in nodes })
+        self.go_table = { node.name : [(False, node.default, lambda : True)] for node in nodes } 
+    
+    def action(self, node, require_play = False):
+        def f(fn):
+            self.nodes[node].add_action((require_play, fn))
+        return f
+    
+    def goto(self, node_from, node_to, require_play = False):
+        def f(fn):
+            self.go_table[node_from].append(require_play, node_to, fn)
+        return f
+    
+    def get_game_instance(self, state, players, who_plays, end_condition):
+        return Game(self.start, self.nodes, self.go_table, state, players, who_plays, end_condition) 
