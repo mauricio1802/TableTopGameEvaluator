@@ -1,6 +1,6 @@
 from itertools import filterfalse, groupby
 from Game.State import TableState, PlayerState
-from numeric_dungeon_domain import Unit, DungeonMaster, Cell
+from numeric_dungeon_domain import Unit, DungeonMaster, Cell, Player
 
 
 class NMTableState(TableState):
@@ -27,6 +27,13 @@ class NMTableState(TableState):
     def __setitem__(self, pos, cell):
         n_col = len(self.board[0])
         self.board[ pos[0] * n_col + pos[1] ]
+    
+    def __repr__(self):
+        rows = []
+        for row in self.board:
+            rows.append("  ".join([str(c) for c in row]))
+        return "\n".join(rows)
+
 
     def move(self, unit, dest):
         row, col = unit.position
@@ -35,13 +42,12 @@ class NMTableState(TableState):
         self[dest[0], dest[1]].add_habitant(unit)
     
 
-class NMPlayerState(Unit, PlayerState):
+class NMPlayerState(PlayerState):
     def __init__(self, name, hp, treasures = []):
-        Unit.__init__(self, -1, -1, hp, treasures)
-        self.__name = name
-    
-    def in_cell(self):
-        return self._position != (-1, -1) 
-    
-    def move(self, row, col):
-        self._position = (row, col)
+        self.player = Player(name, hp, treasures)
+
+    def __getattr__(self, attr):
+        return getattr(self.__dict__['player'], attr)
+
+    def __setattr__(self, attr, value):
+        setattr(self.__dict__['player'], attr, value)

@@ -1,53 +1,49 @@
 from itertools import groupby, filterfalse
-from random import randint, choice
-from Game.State import TableState, PlayerState
+from random import randint, choice, shuffle
 from Game.Game import Game, GameDescriptor, GameNode
-from Game.Player import Player
 from numeric_dungeon_states import NMTableState, NMPlayerState
-from numeric_dungeon_domain import Monster, DungeonMaster
+from numeric_dungeon_domain import Monster, DungeonMaster, DungeonMap, MasterKey
+from numeric_dungeon_plays import DecisionYes
 
 
 MAX_FAIL_MOVE = 3
 
 num_dg_game = GameDescriptor("move", 
                              [
-                                 Node("move", default = "prepare_battles"), 
-                                 Node("activate_treasure", default = "prepare_battles"),
-                                 Node("dungeon_master_flip", default = "end_turn"),
-                                 Node("dungeon_master_move", default = "end_turn"),
-                                 Node("prepare_battles", default = "start_battle"),
-                                 Node("start_battle"),
-                                 Node("pve_battle_init", default = "pve_battle"),
-                                 Node("pve_battle", default = "end_turn"),
-                                 Node("pvp_battle", default = "end_turn"),
-                                 Node("end_turn", default = "move")
+                                 GameNode("move", default = "prepare_battles"), 
+                                 GameNode("activate_treasure", default = "prepare_battles"),
+                                 GameNode("dungeon_master_flip", default = "end_turn"),
+                                 GameNode("dungeon_master_move", default = "end_turn"),
+                                 GameNode("prepare_battles", default = "start_battle"),
+                                 GameNode("start_battle"),
+                                 GameNode("pve_battle_init", default = "pve_battle"),
+                                 GameNode("pve_battle", default = "end_turn"),
+                                 GameNode("pvp_battle", default = "end_turn"),
+                                 GameNode("end_turn", default = "move")
                              ]) 
-
-
-
-
-
-    
 
 
 @num_dg_game.action("move", True)
 def move_player(self, state):
     board = state.table_state.board 
-    actual_player_index = state.table_state.actual_player
+    t_state = state.table_state
+    actual_player_index = t_state.actual_player
     actual_player = state.players_state[actual_player_index]
     
     n_row, n_col = len(board), len(board[0])
     fail_moves = 1
+    
+    row, col = randint(0, 5) % n_row, randint(0, 5) % n_col
 
-    while board[row * n_row + col].is_empty() and fail_moves < MAX_FAIL_MOVE:
+    while t_state[(row, col)].is_empty() and fail_moves < MAX_FAIL_MOVE:
         row = randint(0, 5) % n_row
         col = randint(0, 5) % n_col
         fail_moves += 1
     
     if fail_moves is MAX_FAIL_MOVE:
-        state.table_state.last_move_failed = True
+        t_state.last_move_failed = True
 
-    state.table_state.move(actual_player, (row, col))
+    t_state.move(actual_player, (row, col))
     
     return state
 
@@ -82,7 +78,7 @@ def activate_dm_condition(state):
 
 @num_dg_game.action("dungeon_master_flip")
 def flip_dungeon_master(state):
-    state.table_state.dungeon_master.flip() = True
+    state.table_state.dungeon_master.flip() 
     return state
 
 @num_dg_game.action("dungeon_master_move")
@@ -100,12 +96,12 @@ def move_dungeon_master(state):
         except IndexError:
             if players_founded:
                 break
-            bfs_queue.update(next_lvl)
+            bfs_queue.extend(next_lvl)
             next_lvl = []
             cell = bfs_queue.pop()
         finally:
             neigs = filterfalse(lambda p : state.table_state[p].have_monster(), get_neigs(cell, n_row - 1, n_col - 1))
-            next_lvl.update(neigs)
+            next_lvl.extend(neigs)
             if state.table_state[cell].have_player():
                 players_founded.append(cell)
     
@@ -162,7 +158,7 @@ def pve_battle_init(state):
 @num_dg_game.action("pve_battle")
 def pve_battle(state):
     t_state = state.table_state
-    t_state.question = t_target().get_question()
+    t_state.question = t_state.target.get_question()
 
 @num_dg_game.action("pve_battle", True)
 def pve_battle_response(state, play):
@@ -246,7 +242,7 @@ def change_turn(self, state):
     actual_player = (state.table_state.actual_player + 1) % n_players
     players = state.players_state
     
-    while players[actual_player].hp is 0:
+    while not players[actual_player].is_alive():
         actual_player = (actual_player + 1) % n_players
     
     state.table_state.actual_player = actual_player
@@ -255,17 +251,31 @@ def change_turn(self, state):
 
 
 def hit(attacker, target):
-    damage(target)
+    target.damage() 
     if not target.hp:
         for treasure in target.get_treasures():
             attacker.add_treasure(treasure)
 
 def get_neigs(pos, max_row, max_col):
     dir_array = [(1, 0), (-1, 0), (0, 1), (0, -1)]
-    valid_pos = lambda pos : x[0] >= 0 and x[0] <= max_row and x[1] >= 0 and x[1] <= max_col 
+    valid_pos = lambda pos : pos[0] >= 0 and pos[0] <= max_row and pos[1] >= 0 and pos[1] <= max_col 
     neigs = [ (pos[0] + x[0], pos[1], + x[1]) for x in dir_array if valid_pos((pos[0] + x[0], pos[1], + x[1])) ]
     return neigs
     
-
+def who_plays(state):
+    t_state = state.table_state
+    p_state = state.players_state
+    if t_state.attacker != None:
+        return p_state.index(t_state.attacker)
+    return t_state.actual_player
         
 if __name__ == '__main__':
+    cards = [Monster(0, 0) for _ in range(35)] + [DungeonMaster(0, 0)]
+    choice(cards[:35]).add_treasure(DungeonMap)
+    shuffle(cards)
+    for i, card in enumerate(cards):
+        card.move(i//6, i%6)
+    board = NMTableState(6, cards)
+    print(board)
+
+    #g = num_dg_game.get_game_instance

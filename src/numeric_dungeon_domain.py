@@ -1,4 +1,3 @@
-from numeric_dungeon_states import NMPlayerState
 
 MONSTERS_HP = 1
 DUNGEON_MASTER_HP = 3
@@ -6,6 +5,12 @@ DUNGEON_MASTER_HP = 3
 class Cell:
     def __init__(self):
         self.__habitants = []
+    
+    def __repr__(self):
+        cell = [' ', ' ', ' ', ' ']
+        for i, hab in enumerate(self.__habitants):
+            cell[i] = str(hab)
+        return "".join(cell)
     
     def add_habitant(self, habitant):
         self.__habitants.append(habitant)
@@ -26,7 +31,7 @@ class Cell:
     
     def have_player(self):
         for hab in self.__habitants:
-            if isinstance(hab, NMPlayerState):
+            if isinstance(hab, Player):
                 return True
         return False
 
@@ -65,6 +70,9 @@ class Unit:
     
     def is_alive(self):
         return self.hp > 0
+    
+    def move(self, row, col):
+        self._position = (row, col)
 
     @property
     def hp(self):
@@ -74,11 +82,24 @@ class Unit:
     def position(self):
         return self._position
     
+class Player(Unit):
+    def __init__(self, name, hp, treasures = []):
+        Unit.__init__(self, -1, -1, hp, treasures)
+        self.__name = name
+    
+    def __repr__(self):
+        return "P"
+
+    def in_cell(self):
+        return self._position != (-1, -1) 
     
 class Monster(Unit):
     def __init__(self, row, col):
         super().__init__(row, col)
         self.__attack_remaining = 0
+    
+    def __repr__(self):
+        return "M"
     
     def begin_attack(self):
         self.__attack_remaining = 1
@@ -98,13 +119,12 @@ class DungeonMaster(Monster):
         self.__founded = False
         self.__attack_remaining = 0
         
+    def __repr__(self):
+        return "D"
 
     def flip(self):
         self.__founded = True
 
-    def move(self, row, col):
-        self._position = (row, col)
-    
     def begin_attack(self):
         self.__attack_remaining = self._hp
     
