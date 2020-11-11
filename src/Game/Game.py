@@ -43,6 +43,7 @@ class Game:
     
     def __next__(self):
         actual = self.nodes[self.actual]
+        print(f"NOW ON {self.actual}")
         #Execute previous actions
         for node in actual.prev:
             for require_play, act in self.nodes[node].actions:
@@ -73,8 +74,8 @@ class Game:
                     self.state_history.append(act(deepcopy(self.actual_state)))
         
         #UpdateActual
-        for require_play, to, cond in self.go_table[self.actual]:
-            go = cond(self.last_play) if require_play else cond()
+        for require_play, to, cond in self.go_table[self.actual][::-1]:
+            go = cond(self.actual_state, self.last_play) if require_play else cond(self.actual_state)
             if go:
                 self.actual = to
                 self.last_play = None
@@ -98,7 +99,7 @@ class GameDescriptor:
         self.start = start_node
         self.nodes = { DEFAULT_NODE_NAME : NoPossiblePathNode }
         self.nodes.update({ node.name : node for node in nodes })
-        self.go_table = { node.name : [(False, node.default, lambda : True)] for node in nodes } 
+        self.go_table = { node.name : [(False, node.default, lambda _ : True)] for node in nodes } 
     
     def action(self, node, require_play = False):
         def f(fn):
