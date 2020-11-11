@@ -21,12 +21,15 @@ class NMTableState(TableState):
 
     
     def __getitem__(self, pos):
-        n_row = len(self.board)
-        return self.board[ pos[0] * n_row + pos[1] ]
+       # n_col = len(self.board[0])
+       # print(self.board)
+       # return self.board[ pos[0] * n_col + pos[1] ]
+       return self.board[pos[0]][pos[1]]
     
     def __setitem__(self, pos, cell):
-        n_col = len(self.board[0])
-        self.board[ pos[0] * n_col + pos[1] ]
+       # n_col = len(self.board[0])
+       # self.board[ pos[0] * n_col + pos[1] ]
+       self.board[pos[0]][pos[1]] = cell
     
     def __repr__(self):
         rows = []
@@ -37,7 +40,8 @@ class NMTableState(TableState):
 
     def move(self, unit, dest):
         row, col = unit.position
-        self[(row, col)].remove_habitant(unit)
+        if row != -1 and col != -1:
+            self[(row, col)].remove_habitant(unit)
         unit.move(dest[0], dest[1])
         self[dest[0], dest[1]].add_habitant(unit)
     
@@ -46,8 +50,38 @@ class NMPlayerState(PlayerState):
     def __init__(self, name, hp, treasures = []):
         self.player = Player(name, hp, treasures)
 
-    def __getattr__(self, attr):
-        return getattr(self.__dict__['player'], attr)
+    
+    def add_treasure(self, treasure):
+        self.player.add_treasure(treasure)
+    
+    def get_trasures(self):
+        return self.player.get_trasures()
 
-    def __setattr__(self, attr, value):
-        setattr(self.__dict__['player'], attr, value)
+    def have_treasure(self, treasure):
+        return self.player.have_treasure(treasure)
+
+    def have_treasures(self):
+        return self.player.have_treasures()
+
+    def damage(self, ap = 1):
+        self.player.damage(ap)
+
+    def is_alive(self):
+        return self.player.is_alive()
+
+    def move(self, row, col):
+        self.player.move(row, col)
+
+    def in_cell(self):
+        return self.player.in_cell()
+    
+    def __repr__(self):
+        return "P"
+
+    @property
+    def hp(self):
+        return self.player.hp
+
+    @property
+    def position(self):
+        return self.player.position

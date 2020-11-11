@@ -2,6 +2,7 @@
 MONSTERS_HP = 1
 DUNGEON_MASTER_HP = 3
 
+
 class Cell:
     def __init__(self):
         self.__habitants = []
@@ -54,7 +55,7 @@ class Unit:
     def add_treasure(self, treasure):
         self._treasures.append(treasure)
     
-    def get_trasures(self):
+    def get_treasures(self):
         treasures = self._treasures
         self._treasures = []
         return treasures
@@ -101,6 +102,9 @@ class Monster(Unit):
     def __repr__(self):
         return "M"
     
+    def get_question(self):
+        return [False for _ in range(5)] + [True for _ in range(5)]
+
     def begin_attack(self):
         self.__attack_remaining = 1
     
@@ -121,6 +125,9 @@ class DungeonMaster(Monster):
         
     def __repr__(self):
         return "D"
+    
+    def get_question(self):
+        return [False for _ in range(6)] + [True for _ in range(4)]
 
     def flip(self):
         self.__founded = True

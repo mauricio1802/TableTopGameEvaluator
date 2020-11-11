@@ -1,9 +1,11 @@
 from itertools import groupby, filterfalse
 from random import randint, choice, shuffle
 from Game.Game import Game, GameDescriptor, GameNode
+from Game.State import create_game_state, print_state
 from numeric_dungeon_states import NMTableState, NMPlayerState
 from numeric_dungeon_domain import Monster, DungeonMaster, DungeonMap, MasterKey
 from numeric_dungeon_plays import DecisionYes
+from numeric_dungeon_player import NDPlayer
 
 
 MAX_FAIL_MOVE = 3
@@ -24,7 +26,7 @@ num_dg_game = GameDescriptor("move",
 
 
 @num_dg_game.action("move", True)
-def move_player(self, state):
+def move_player(state, play):
     board = state.table_state.board 
     t_state = state.table_state
     actual_player_index = t_state.actual_player
@@ -58,10 +60,10 @@ def flip_condition(state):
 
 @num_dg_game.goto("move", "dungeon_master_move")
 def move_dm_condition(state):
-    return state.table.state.last_move_failed
+    return state.table_state.last_move_failed
 
 @num_dg_game.action("activate_treasure", True)
-def activate_treasure(self, state, play):
+def activate_treasure(state, play):
     actual_player_index = state.table_state.actual_player
     actual_player = state.players_state[actual_player_index]
     if actual_player.have_treasure(play.treasure):
@@ -131,7 +133,7 @@ def prepare_battles(state):
         actual_player_index = t_state.actual_player
         actual_player = p_state[actual_player_index]
         t_state.attacker = actual_player
-        t_state.targets = filter(lambda h : h != actual_player ,t_state[actual_player.position].habitants)
+        t_state.targets = list(filter(lambda h : h != actual_player ,t_state[actual_player.position].habitants))
     return state
 
 
@@ -153,12 +155,14 @@ def start_battle__pvp_battle_condition(state):
 
 @num_dg_game.action("pve_battle_init")
 def pve_battle_init(state):
-    state.table_state.taget.begin_attack()
+    state.table_state.target.begin_attack()
+    return state
 
 @num_dg_game.action("pve_battle")
 def pve_battle(state):
     t_state = state.table_state
     t_state.question = t_state.target.get_question()
+    return state
 
 @num_dg_game.action("pve_battle", True)
 def pve_battle_response(state, play):
@@ -194,7 +198,7 @@ def pvp_battle__pvp_battle(state):
     return t_state.attacker.is_alive() and t_state.target.is_alive()
 
 @num_dg_game.action("end_turn")
-def clean_cell(self, state):
+def clean_cell(state):
     pos = None
     s_state = state.table_state
     if state.table_state.last_move_failed:
@@ -208,15 +212,15 @@ def clean_cell(self, state):
     return state
 
 @num_dg_game.action("end_turn")
-def shrink_board(self, state):
+def shrink_board(state):
     board = state.table_state.board
     n_col = len(board[0])
     #Remove empty rows
-    state.table_state.board = filterfalse(lambda r : all(map(lambda c: c.is_empty(), r)) , board)
+    state.table_state.board = list(filterfalse(lambda r : all(map(lambda c: c.is_empty(), r)) , board))
 
     #Remove empty columns
     n_row = len(board)
-    for c in range(n_col)[-1]:
+    for c in range(n_col)[::-1]:
         remove_col = True
         for r in range(n_row):
             if not board[r][c].is_empty():
@@ -236,8 +240,10 @@ def end_turn(state):
     t_state.target = None
     t_state.question = None
 
+    return state
+
 @num_dg_game.action("end_turn")
-def change_turn(self, state):
+def change_turn(state):
     n_players = len(state.players_state)
     actual_player = (state.table_state.actual_player + 1) % n_players
     players = state.players_state
@@ -268,6 +274,9 @@ def who_plays(state):
     if t_state.attacker != None:
         return p_state.index(t_state.attacker)
     return t_state.actual_player
+
+def end_condition(state):
+    return all(map(lambda p : not p.is_alive(), state.players_state))
         
 if __name__ == '__main__':
     cards = [Monster(0, 0) for _ in range(35)] + [DungeonMaster(0, 0)]
@@ -276,6 +285,11 @@ if __name__ == '__main__':
     for i, card in enumerate(cards):
         card.move(i//6, i%6)
     board = NMTableState(6, cards)
-    print(board)
-
+    p1 = NDPlayer()     
+    p2 = NDPlayer()  
+    g = num_dg_game.get_game_instance(create_game_state(board, [NMPlayerState("p1", 4), NMPlayerState("p2", 4)]),
+                                     [p1, p2], who_plays, end_condition)
+    for s in g:
+        print_state(s)
+        input()
     #g = num_dg_game.get_game_instance
