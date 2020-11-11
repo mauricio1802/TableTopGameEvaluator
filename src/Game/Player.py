@@ -4,5 +4,5 @@ class Player:
     def __init__(self, name = ""):
         raise NotImplementedError
     
-    def get_play(self, state):
+    def get_play(self, state, node):
         raise NotImplementedError

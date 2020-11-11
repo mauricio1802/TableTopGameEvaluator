@@ -57,7 +57,7 @@ class Game:
         for require_play, act in actual.actions:
             if require_play:
                 player = self.players[self.who_plays(deepcopy(self.actual_state))]
-                self.last_play = player.get_play(deepcopy(self.actual_state))
+                self.last_play = player.get_play(deepcopy(self.actual_state), self.actual)
                 self.state_history.append(act(deepcopy(self.actual_state), self.last_play))
             else:
                 self.state_history.append(act(deepcopy(self.actual_state)))
@@ -107,7 +107,7 @@ class GameDescriptor:
     
     def goto(self, node_from, node_to, require_play = False):
         def f(fn):
-            self.go_table[node_from].append(require_play, node_to, fn)
+            self.go_table[node_from].append((require_play, node_to, fn))
         return f
     
     def get_game_instance(self, state, players, who_plays, end_condition):
