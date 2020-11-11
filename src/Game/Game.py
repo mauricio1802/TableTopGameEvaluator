@@ -48,7 +48,7 @@ class Game:
         for node in actual.prev:
             for require_play, act in self.nodes[node].actions:
                 if require_play:
-                    player = self.players[self.who_plays(deepcopy(self.actual_state))]
+                    player = self.players[self.who_plays(deepcopy(self.actual_state), node)]
                     self.last_play = player.get_play(deepcopy(self.actual_state))
                     self.state_history.append(act(deepcopy(self.actual_state), self.last_play))
                 else:
@@ -57,7 +57,7 @@ class Game:
         #Execute node actions
         for require_play, act in actual.actions:
             if require_play:
-                player = self.players[self.who_plays(deepcopy(self.actual_state))]
+                player = self.players[self.who_plays(deepcopy(self.actual_state), self.actual)]
                 self.last_play = player.get_play(deepcopy(self.actual_state), self.actual)
                 self.state_history.append(act(deepcopy(self.actual_state), self.last_play))
             else:
@@ -67,7 +67,7 @@ class Game:
         for node in actual.after:
             for require_play, act in self.nodes[node].actions:
                 if require_play:
-                    player = self.players[self.who_plays(deepcopy(self.actual_state))]
+                    player = self.players[self.who_plays(deepcopy(self.actual_state), node)]
                     self.last_play = player.get_play(deepcopy(self.actual_state))
                     self.state_history.append(act(deepcopy(self.actual_state), self.last_play))
                 else:
