@@ -10,7 +10,7 @@ class Cell:
     def __repr__(self):
         cell = [' ', ' ', ' ', ' ']
         for i, hab in enumerate(self.__habitants):
-            cell[i] = str(hab)
+            cell[i] = str(hab) if isinstance(hab, (Monster, DungeonMaster)) else "P"
         return "".join(cell)
     
     def add_habitant(self, habitant):
@@ -32,7 +32,7 @@ class Cell:
     
     def have_player(self):
         for hab in self.__habitants:
-            if isinstance(hab, Player):
+            if not isinstance(hab, (Monster, DungeonMaster)):
                 return True
         return False
 
@@ -42,15 +42,18 @@ class Cell:
                 return True
         return False
     
+    def __contains__(self, value):
+        return value in self.__habitants
+    
     @property
     def habitants(self):
         return self.__habitants
 
 class Unit:
-    def __init__(self, row, col, hp = MONSTERS_HP, treasures = []):
+    def __init__(self, row, col, hp = MONSTERS_HP, treasures = None):
         self._position = (row, col)
         self._hp = hp
-        self._treasures = treasures
+        self._treasures = treasures if treasures else []
     
     def add_treasure(self, treasure):
         self._treasures.append(treasure)
@@ -93,6 +96,20 @@ class Player(Unit):
 
     def in_cell(self):
         return self._position != (-1, -1) 
+    
+    def have_win_requirements(self):
+        found = False
+        for t in self._treasures:
+            if isinstance(t, (DungeonMap, MasterKey)):
+                if found:
+                    return found
+                else:
+                    found = True
+            
+    
+    @property
+    def name(self):
+        return self.__name
     
 class Monster(Unit):
     def __init__(self, row, col):

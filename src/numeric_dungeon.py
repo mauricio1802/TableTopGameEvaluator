@@ -20,7 +20,8 @@ num_dg_game = GameDescriptor("move",
                                  GameNode("start_battle"),
                                  GameNode("pve_battle_init", default = "pve_battle"),
                                  GameNode("pve_battle", default = "end_turn"),
-                                 GameNode("pvp_battle", default = "end_turn"),
+                                 GameNode("pvp_battle_ask", default = "pvp_battle_answer"),
+                                 GameNode("pvp_battle_answer", default = "end_turn"),
                                  GameNode("end_turn", default = "move")
                              ]) 
 
@@ -33,16 +34,18 @@ def move_player(state, play):
     actual_player = state.players_state[actual_player_index]
     
     n_row, n_col = len(board), len(board[0])
-    fail_moves = 1
     
     row, col = randint(0, 5) % n_row, randint(0, 5) % n_col
-
-    while t_state[(row, col)].is_empty() and fail_moves < MAX_FAIL_MOVE:
-        row = randint(0, 5) % n_row
-        col = randint(0, 5) % n_col
-        fail_moves += 1
+    roll_count = 1
+    cell = t_state[(row, col)]
+    while roll_count < MAX_FAIL_MOVE:
+        if len(list(filterfalse(lambda m : m is actual_player, cell.habitants))) > 0: 
+            break
+        row, col = randint(0, 5) % n_row, randint(0, 5) % n_col
+        cell = t_state[(row, col)]
+        roll_count += 1
     
-    if fail_moves is MAX_FAIL_MOVE:
+    if roll_count is MAX_FAIL_MOVE:
         t_state.last_move_failed = True
 
     t_state.move(actual_player, (row, col))
@@ -88,11 +91,17 @@ def move_dungeon_master(state):
     board = state.table_state.board
     n_row, n_col = len(board), len(board[0])
     dungeon_master = state.table_state.dungeon_master
+    if not dungeon_master.is_alive():
+        return state
     
     bfs_queue = [ dungeon_master.position ]
     players_founded = []
     next_lvl = []
+    visited = [ dungeon_master.position ]
     while bfs_queue or next_lvl:
+        print(bfs_queue)
+        print(next_lvl)
+        print(visited)
         try:
             cell = bfs_queue.pop()
         except IndexError:
@@ -103,10 +112,13 @@ def move_dungeon_master(state):
             cell = bfs_queue.pop()
         finally:
             neigs = filterfalse(lambda p : state.table_state[p].have_monster(), get_neigs(cell, n_row - 1, n_col - 1))
+            neigs = list(filterfalse(lambda p : p in visited, neigs))
             next_lvl.extend(neigs)
+            visited.extend(neigs)
             if state.table_state[cell].have_player():
                 players_founded.append(cell)
-    
+
+    print("PF ",players_founded) 
     if not players_founded:
         return state
 
@@ -148,7 +160,7 @@ def start_battle(state):
 def start_battle_pve__battle_init_condition(state):
     return isinstance(state.table_state.target, (Monster, DungeonMaster))
 
-@num_dg_game.goto("start_battle", "pvp_battle")
+@num_dg_game.goto("start_battle", "pvp_battle_ask")
 def start_battle__pvp_battle_condition(state):
     return isinstance(state.table_state.target, NMPlayerState) 
 
@@ -179,11 +191,12 @@ def pve_battle__pve_battle(state):
     t_state = state.table_state
     return all([ t_state.target.in_attack, t_state.target.is_alive(), t_state.attacker.is_alive() ])
 
-@num_dg_game.action("pvp_battle")
+@num_dg_game.action("pvp_battle_ask", True)
 def pvp_battle_ask(state, play):
     state.table_state.question = play.question
+    return state
 
-@num_dg_game.action("pvp_battle")
+@num_dg_game.action("pvp_battle_answer", True)
 def pvp_battle_response(state, play):
     t_state = state.table_state
     if t_state.question[play.index]:
@@ -192,7 +205,7 @@ def pvp_battle_response(state, play):
         hit(t_state.target, t_state.attacker)
     return state
 
-@num_dg_game.goto("pvp_battle", "pvp_battle")
+@num_dg_game.goto("pvp_battle_answer", "pvp_battle_ask")
 def pvp_battle__pvp_battle(state):
     t_state = state.table_state
     return t_state.attacker.is_alive() and t_state.target.is_alive()
@@ -230,6 +243,12 @@ def shrink_board(state):
             for r in range(n_row):
                 board[r].pop(c)
     
+    #update positions
+    for i, row in enumerate(board):
+        for j, cell in enumerate(row):
+            for hab in cell.habitants:
+                hab.move(i, j)
+    
     return state
 
 @num_dg_game.action("end_turn")
@@ -265,17 +284,22 @@ def hit(attacker, target):
 def get_neigs(pos, max_row, max_col):
     dir_array = [(1, 0), (-1, 0), (0, 1), (0, -1)]
     valid_pos = lambda pos : pos[0] >= 0 and pos[0] <= max_row and pos[1] >= 0 and pos[1] <= max_col 
-    neigs = [ (pos[0] + x[0], pos[1], + x[1]) for x in dir_array if valid_pos((pos[0] + x[0], pos[1], + x[1])) ]
+    neigs = [ (pos[0] + x[0], pos[1] + x[1]) for x in dir_array if valid_pos((pos[0] + x[0], pos[1] + x[1])) ]
     return neigs
     
-def who_plays(state):
+def who_plays(state, node):
     t_state = state.table_state
     p_state = state.players_state
+    if node == "pvp_battle_ask":
+        return p_state.index(t_state.target)
     if t_state.attacker != None:
         return p_state.index(t_state.attacker)
     return t_state.actual_player
 
 def end_condition(state):
+    for player in state.players_state:
+        if player.have_win_requirements():
+            return True
     return all(map(lambda p : not p.is_alive(), state.players_state))
         
 if __name__ == '__main__':

@@ -47,15 +47,16 @@ class NMTableState(TableState):
     
 
 class NMPlayerState(PlayerState):
-    def __init__(self, name, hp, treasures = []):
+    def __init__(self, name, hp, treasures = None):
+        treasures = treasures if treasures else []
         self.player = Player(name, hp, treasures)
 
     
     def add_treasure(self, treasure):
         self.player.add_treasure(treasure)
     
-    def get_trasures(self):
-        return self.player.get_trasures()
+    def get_treasures(self):
+        return self.player.get_treasures()
 
     def have_treasure(self, treasure):
         return self.player.have_treasure(treasure)
@@ -75,9 +76,11 @@ class NMPlayerState(PlayerState):
     def in_cell(self):
         return self.player.in_cell()
     
+    def have_win_requirements(self):
+        return self.player.have_win_requirements()
+    
     def __repr__(self):
-        return "P"
-
+        return f"NAME: {self.name} in {self.position} with {self.hp}\n{self.player._treasures}"
     @property
     def hp(self):
         return self.player.hp
@@ -85,3 +88,7 @@ class NMPlayerState(PlayerState):
     @property
     def position(self):
         return self.player.position
+    
+    @property
+    def name(self):
+        return self.player.name

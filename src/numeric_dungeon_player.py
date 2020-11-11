@@ -1,6 +1,6 @@
 from Game.Player import Player
 from Game.State import print_state
-from numeric_dungeon_plays import DecisionYes, DecisionNo, Answer
+from numeric_dungeon_plays import DecisionYes, DecisionNo, Answer, Question
 
 
 class NDPlayer(Player):
@@ -15,6 +15,13 @@ class NDPlayer(Player):
                 return DecisionYes()
             else:
                 return DecisionNo() 
-        if node == "pve_battle":
+        
+        if node == "pvp_battle_ask":
+            n_true = int(input("Insert question:\n"))    
+            return Question([False for _ in range(10-n_true)] + [True for _ in range(n_true)])
+
+        if node in ["pvp_battle_answer", "pve_battle"]:
             return Answer(int(input("Answer question:\n")))     
+                
+
     
