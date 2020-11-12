@@ -119,15 +119,16 @@ class Player(Unit):
         return self.__name
     
 class Monster(Unit):
-    def __init__(self, row, col):
+    def __init__(self, row, col, dif):
         super().__init__(row, col)
         self.__attack_remaining = 0
+        self.dif = dif
     
     def __repr__(self):
         return "M"
     
     def get_question(self):
-        return randint(1, 100)
+        return self.dif
 
     def begin_attack(self):
         self.__attack_remaining = 1
@@ -140,8 +141,8 @@ class Monster(Unit):
         self.__attack_remaining > 0
 
 class DungeonMaster(Monster):
-    def __init__(self, row, col):
-        super().__init__(row, col)
+    def __init__(self, row, col, dif):
+        super().__init__(row, col, dif)
         self._hp = DUNGEON_MASTER_HP
         self.add_treasure(MasterKey())
         self.__founded = False
@@ -150,25 +151,16 @@ class DungeonMaster(Monster):
     def __repr__(self):
         return "D"
     
-    def get_question(self):
-        return randint(30, 130)
-
     def flip(self):
         self.__founded = True
 
     def begin_attack(self):
         self.__attack_remaining = self._hp
     
-    def attack(self):
-        self.__attack_remaining -= 1
-
     @property
     def founded(self):
         return self.__founded
     
-    @property
-    def in_attack(self):
-        return self.__attack_remaining > 0
     
 class Treasure:
     def __init__(self):

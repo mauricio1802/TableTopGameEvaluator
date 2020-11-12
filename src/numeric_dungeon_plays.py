@@ -14,5 +14,5 @@ class Question:
         self.question = question
 
 class Activate:
-    def __init__(self, index):
-        self.index = index
+    def __init__(self, indexes):
+        self.indexes = indexes

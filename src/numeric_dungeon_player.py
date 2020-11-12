@@ -1,4 +1,4 @@
-from random import randint
+from random import uniform 
 from Game.Player import Player
 from Game.State import print_state
 from numeric_dungeon_plays import DecisionYes, DecisionNo, Answer, Question, Activate
@@ -36,16 +36,16 @@ class NDPlayer(Player):
             return Answer(int(input("Answer question:\n")))     
                 
 
-class NDPlayerAgent1(Player):
-    def __init__(self):
-        pass
+class NDPlayerAgent(Player):
+    def __init__(self, knowledge):
+        self.knowledge = knowledge
     
     def get_play(self, state, node):
         if node == "move":
             return DecisionNo()
     
         if node == "pvp_battle_ask":
-            return Question(randint(1, 100))
+            return Question(uniform(0, self.knowledge))
         
         if node in ["pvp_battle_answer", "pve_battle"]:
-            return Answer(randint(1, 100))
+            return Answer(uniform(0, self.knowledge))

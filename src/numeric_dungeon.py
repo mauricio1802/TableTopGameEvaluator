@@ -1,11 +1,11 @@
 from itertools import groupby, filterfalse
-from random import randint, choice, shuffle
+from random import randint, choice, shuffle, uniform
 from Game.Game import Game, GameDescriptor, GameNode
 from Game.State import create_game_state, print_state
 from numeric_dungeon_states import NMTableState, NMPlayerState
 from numeric_dungeon_domain import Monster, DungeonMaster, DungeonMap, MasterKey, EnergyDrink
 from numeric_dungeon_plays import DecisionYes
-from numeric_dungeon_player import NDPlayer, NDPlayerAgent1
+from numeric_dungeon_player import NDPlayer, NDPlayerAgent
 
 
 MAX_FAIL_MOVE = 3
@@ -70,9 +70,10 @@ def activate_treasure(state, play):
     actual_player_index = state.table_state.actual_player
     actual_player = state.players_state[actual_player_index]
 
-    tre = actual_player.get_treasure(play.index)
-    state = tre.reduce(state)
-    actual_player.use_treasure(tre)
+    for tre in play.indexes:
+        tre = actual_player.get_treasure(play.index)
+        state = tre.reduce(state)
+        actual_player.use_treasure(tre)
 
 
     return state
@@ -293,7 +294,7 @@ def end_condition(state):
     return all(map(lambda p : not p.is_alive(), state.players_state))
         
 if __name__ == '__main__':
-    cards = [Monster(0, 0) for _ in range(35)] + [DungeonMaster(0, 0)]
+    cards = [Monster(0, 0, uniform(0, 1)) for _ in range(35)] + [DungeonMaster(0, 0, uniform(0.3, 1))]
     choice(cards[:35]).add_treasure(DungeonMap())
     for _ in range(2):
         choice(cards[:35]).add_treasure(EnergyDrink())
@@ -301,8 +302,8 @@ if __name__ == '__main__':
     for i, card in enumerate(cards):
         card.move(i//6, i%6)
     board = NMTableState(6, cards)
-    p1 = NDPlayerAgent1()
-    p2 = NDPlayerAgent1()  
+    p1 = NDPlayerAgent(uniform(0.2, 1))
+    p2 = NDPlayerAgent(uniform(0.2, 1))  
     g = num_dg_game.get_game_instance(create_game_state(board, [NMPlayerState("p1", 4 ), NMPlayerState("p2", 4)]),
                                      [p1, p2], who_plays, end_condition)
     for s in g:
