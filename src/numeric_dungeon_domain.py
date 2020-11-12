@@ -1,3 +1,4 @@
+from random import randint
 
 MONSTERS_HP = 1
 DUNGEON_MASTER_HP = 3
@@ -63,6 +64,12 @@ class Unit:
         self._treasures = []
         return treasures
     
+    def get_treasure(self, index = 0):
+        return self._treasures[index]
+    
+    def use_treasure(self, treasure):
+        self._treasures.remove(treasure)
+    
     def have_treasure(self, treasure):
         return treasure in self._treasures
     
@@ -120,7 +127,7 @@ class Monster(Unit):
         return "M"
     
     def get_question(self):
-        return [False for _ in range(5)] + [True for _ in range(5)]
+        return randint(1, 100)
 
     def begin_attack(self):
         self.__attack_remaining = 1
@@ -144,7 +151,7 @@ class DungeonMaster(Monster):
         return "D"
     
     def get_question(self):
-        return [False for _ in range(6)] + [True for _ in range(4)]
+        return randint(30, 130)
 
     def flip(self):
         self.__founded = True
@@ -177,3 +184,15 @@ class MasterKey(Treasure):
 class DungeonMap(Treasure):
     def __init__(self):
         pass
+
+class EnergyDrink(Treasure):
+    def __init__(self):
+        pass
+    
+    def reduce(self, state):
+        actual_player_index = state.table_state.actual_player
+        actual_player = state.players_state[actual_player_index]
+        actual_player.damage(-2)
+        return state
+
+        

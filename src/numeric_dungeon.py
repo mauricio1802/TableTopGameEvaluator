@@ -3,9 +3,9 @@ from random import randint, choice, shuffle
 from Game.Game import Game, GameDescriptor, GameNode
 from Game.State import create_game_state, print_state
 from numeric_dungeon_states import NMTableState, NMPlayerState
-from numeric_dungeon_domain import Monster, DungeonMaster, DungeonMap, MasterKey
+from numeric_dungeon_domain import Monster, DungeonMaster, DungeonMap, MasterKey, EnergyDrink
 from numeric_dungeon_plays import DecisionYes
-from numeric_dungeon_player import NDPlayer
+from numeric_dungeon_player import NDPlayer, NDPlayerAgent1
 
 
 MAX_FAIL_MOVE = 3
@@ -32,7 +32,7 @@ def move_player(state, play):
     t_state = state.table_state
     actual_player_index = t_state.actual_player
     actual_player = state.players_state[actual_player_index]
-    
+   
     n_row, n_col = len(board), len(board[0])
     
     row, col = randint(0, 5) % n_row, randint(0, 5) % n_col
@@ -45,7 +45,7 @@ def move_player(state, play):
         cell = t_state[(row, col)]
         roll_count += 1
     
-    if roll_count is MAX_FAIL_MOVE:
+    if roll_count is MAX_FAIL_MOVE and len(list(filterfalse(lambda m : m is actual_player, cell.habitants))) is 0:
         t_state.last_move_failed = True
 
     t_state.move(actual_player, (row, col))
@@ -69,8 +69,12 @@ def move_dm_condition(state):
 def activate_treasure(state, play):
     actual_player_index = state.table_state.actual_player
     actual_player = state.players_state[actual_player_index]
-    if actual_player.have_treasure(play.treasure):
-        return play.treasure.reduce(state)
+
+    tre = actual_player.get_treasure(play.index)
+    state = tre.reduce(state)
+    actual_player.use_treasure(tre)
+
+
     return state
 
 @num_dg_game.goto("activate_treasure", "dungeon_master_flip")
@@ -99,9 +103,6 @@ def move_dungeon_master(state):
     next_lvl = []
     visited = [ dungeon_master.position ]
     while bfs_queue or next_lvl:
-        print(bfs_queue)
-        print(next_lvl)
-        print(visited)
         try:
             cell = bfs_queue.pop()
         except IndexError:
@@ -118,7 +119,6 @@ def move_dungeon_master(state):
             if state.table_state[cell].have_player():
                 players_founded.append(cell)
 
-    print("PF ",players_founded) 
     if not players_founded:
         return state
 
@@ -131,6 +131,8 @@ def move_dungeon_master(state):
 @num_dg_game.goto("dungeon_master_move", "prepare_battles")
 def dm_move_battle_condition(state):
     t_state = state.table_state
+    if not state.table_state.dungeon_master.is_alive():
+        return False
     return t_state[t_state.dungeon_master.position].have_player()
 
 @num_dg_game.action("prepare_battles")
@@ -179,7 +181,8 @@ def pve_battle(state):
 @num_dg_game.action("pve_battle", True)
 def pve_battle_response(state, play):
     t_state = state.table_state
-    if t_state.question[play.index]:
+    t_state.target.attack()
+    if t_state.question <= play.answer:
         hit(t_state.attacker, t_state.target)
     else:
         hit(t_state.target, t_state.attacker)
@@ -199,7 +202,7 @@ def pvp_battle_ask(state, play):
 @num_dg_game.action("pvp_battle_answer", True)
 def pvp_battle_response(state, play):
     t_state = state.table_state
-    if t_state.question[play.index]:
+    if t_state.question <= play.answer:
         hit(t_state.attacker, t_state.target)
     else:
         hit(t_state.target, t_state.attacker)
@@ -211,26 +214,12 @@ def pvp_battle__pvp_battle(state):
     return t_state.attacker.is_alive() and t_state.target.is_alive()
 
 @num_dg_game.action("end_turn")
-def clean_cell(state):
-    pos = None
-    s_state = state.table_state
-    if state.table_state.last_move_failed:
-        pos = s_state.dungeon_master.position
-    else:
-        pos = state.players_state[s_state.actual_player].position
-    
-    cell = s_state[pos]
-    cell.clean()
-
-    return state
-
-@num_dg_game.action("end_turn")
 def shrink_board(state):
+    #Remove empty rows
+    state.table_state.board = list(filterfalse(lambda r : all(map(lambda c: c.is_empty(), r)) , state.table_state.board))
+
     board = state.table_state.board
     n_col = len(board[0])
-    #Remove empty rows
-    state.table_state.board = list(filterfalse(lambda r : all(map(lambda c: c.is_empty(), r)) , board))
-
     #Remove empty columns
     n_row = len(board)
     for c in range(n_col)[::-1]:
@@ -246,6 +235,7 @@ def shrink_board(state):
     #update positions
     for i, row in enumerate(board):
         for j, cell in enumerate(row):
+            cell.clean()
             for hab in cell.habitants:
                 hab.move(i, j)
     
@@ -304,16 +294,17 @@ def end_condition(state):
         
 if __name__ == '__main__':
     cards = [Monster(0, 0) for _ in range(35)] + [DungeonMaster(0, 0)]
-    choice(cards[:35]).add_treasure(DungeonMap)
+    choice(cards[:35]).add_treasure(DungeonMap())
+    for _ in range(2):
+        choice(cards[:35]).add_treasure(EnergyDrink())
     shuffle(cards)
     for i, card in enumerate(cards):
         card.move(i//6, i%6)
     board = NMTableState(6, cards)
-    p1 = NDPlayer()     
-    p2 = NDPlayer()  
-    g = num_dg_game.get_game_instance(create_game_state(board, [NMPlayerState("p1", 4), NMPlayerState("p2", 4)]),
+    p1 = NDPlayerAgent1()
+    p2 = NDPlayerAgent1()  
+    g = num_dg_game.get_game_instance(create_game_state(board, [NMPlayerState("p1", 4 ), NMPlayerState("p2", 4)]),
                                      [p1, p2], who_plays, end_condition)
     for s in g:
         print_state(s)
         input()
-    #g = num_dg_game.get_game_instance

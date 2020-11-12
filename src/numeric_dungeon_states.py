@@ -57,6 +57,12 @@ class NMPlayerState(PlayerState):
     
     def get_treasures(self):
         return self.player.get_treasures()
+    
+    def get_treasure(self, index = 0):
+        return self.player.get_treasure(index)
+    
+    def use_treasure(self, treasure):
+        return self.player.use_treasure(treasure)
 
     def have_treasure(self, treasure):
         return self.player.have_treasure(treasure)
