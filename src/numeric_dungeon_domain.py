@@ -49,6 +49,7 @@ class Cell:
     @property
     def habitants(self):
         return self.__habitants
+            
 
 class Unit:
     def __init__(self, row, col, hp = MONSTERS_HP, treasures = None):
@@ -92,6 +93,7 @@ class Unit:
     @property
     def position(self):
         return self._position
+            
     
 class Player(Unit):
     def __init__(self, name, hp, treasures = []):
@@ -112,11 +114,11 @@ class Player(Unit):
                     return found
                 else:
                     found = True
-            
     
     @property
     def name(self):
         return self.__name
+            
     
 class Monster(Unit):
     def __init__(self, row, col, dif):
@@ -139,6 +141,7 @@ class Monster(Unit):
     @property
     def in_attack(self):
         self.__attack_remaining > 0
+
 
 class DungeonMaster(Monster):
     def __init__(self, row, col, dif):
@@ -169,14 +172,17 @@ class Treasure:
     def reduce(self, state):
         raise NotImplementedError
 
+            
 class MasterKey(Treasure):
     def __init__(self):
         pass
 
+            
 class DungeonMap(Treasure):
     def __init__(self):
         pass
 
+            
 class EnergyDrink(Treasure):
     def __init__(self):
         pass
