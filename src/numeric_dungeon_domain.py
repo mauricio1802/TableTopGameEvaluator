@@ -3,7 +3,7 @@ from random import randint
 MONSTERS_HP = 1
 DUNGEON_MASTER_HP = 3
 
-
+#Class to represent a position in the dungeon
 class Cell:
     def __init__(self):
         self.__habitants = []
@@ -60,22 +60,8 @@ class Unit:
     def add_treasure(self, treasure):
         self._treasures.append(treasure)
     
-    def get_treasures(self):
-        treasures = self._treasures
-        self._treasures = []
-        return treasures
-    
-    def get_treasure(self, index = 0):
-        return self._treasures[index]
-    
-    def use_treasure(self, treasure):
+    def remove_treasure(self, treasure):
         self._treasures.remove(treasure)
-    
-    def have_treasure(self, treasure):
-        return treasure in self._treasures
-    
-    def have_treasures(self):
-        return len(self._treasures) != 0
 
     def damage(self, ap = 1):
         self._hp -= ap
@@ -93,10 +79,14 @@ class Unit:
     @property
     def position(self):
         return self._position
+    
+    @property
+    def treasures(self):
+        return self._treasures
             
     
 class Player(Unit):
-    def __init__(self, name, hp, treasures = []):
+    def __init__(self, name, hp, treasures = None):
         Unit.__init__(self, -1, -1, hp, treasures)
         self.__name = name
     
@@ -124,13 +114,13 @@ class Monster(Unit):
     def __init__(self, row, col, dif):
         super().__init__(row, col)
         self.__attack_remaining = 0
-        self.dif = dif
+        self._difficulty = dif
     
     def __repr__(self):
         return "M"
     
     def get_question(self):
-        return self.dif
+        return self._difficulty
 
     def begin_attack(self):
         self.__attack_remaining = 1
@@ -141,6 +131,10 @@ class Monster(Unit):
     @property
     def in_attack(self):
         self.__attack_remaining > 0
+    
+    @property
+    def difficulty(self):
+        return self._difficulty
 
 
 class DungeonMaster(Monster):
@@ -149,7 +143,6 @@ class DungeonMaster(Monster):
         self._hp = DUNGEON_MASTER_HP
         self.add_treasure(MasterKey())
         self.__founded = False
-        self.__attack_remaining = 0
         
     def __repr__(self):
         return "D"

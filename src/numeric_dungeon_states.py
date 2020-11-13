@@ -1,9 +1,9 @@
 from itertools import filterfalse, groupby
 from Game.State import TableState, PlayerState
-from numeric_dungeon_domain import Unit, DungeonMaster, Cell, Player
+from numeric_dungeon_domain import Unit, DungeonMaster, Cell, Player, DungeonMap, MasterKey
 
 
-class NMTableState(TableState):
+class NDTableState(TableState):
     def __init__(self, n, cards):
         self.board = [ Cell() for _ in range(n * n) ]
         self.dungeon_master = None
@@ -21,14 +21,9 @@ class NMTableState(TableState):
         self.total_turns = 0
     
     def __getitem__(self, pos):
-       # n_col = len(self.board[0])
-       # print(self.board)
-       # return self.board[ pos[0] * n_col + pos[1] ]
        return self.board[pos[0]][pos[1]]
     
     def __setitem__(self, pos, cell):
-       # n_col = len(self.board[0])
-       # self.board[ pos[0] * n_col + pos[1] ]
        self.board[pos[0]][pos[1]] = cell
     
     def __repr__(self):
@@ -46,31 +41,17 @@ class NMTableState(TableState):
         self[dest[0], dest[1]].add_habitant(unit)
     
 
-class NMPlayerState(PlayerState):
+class NDPlayerState(PlayerState):
     def __init__(self, name, hp, treasures = None):
-        treasures = treasures if treasures else []
         self.player = Player(name, hp, treasures)
         self.turns_alive = 0
 
-    
     def add_treasure(self, treasure):
         self.player.add_treasure(treasure)
     
-    def get_treasures(self):
-        return self.player.get_treasures()
+    def remove_treasure(self, treasure):
+        self.player.remove_treasure(treasure)
     
-    def get_treasure(self, index = 0):
-        return self.player.get_treasure(index)
-    
-    def use_treasure(self, treasure):
-        return self.player.use_treasure(treasure)
-
-    def have_treasure(self, treasure):
-        return self.player.have_treasure(treasure)
-
-    def have_treasures(self):
-        return self.player.have_treasures()
-
     def damage(self, ap = 1):
         self.player.damage(ap)
 
@@ -99,3 +80,7 @@ class NMPlayerState(PlayerState):
     @property
     def name(self):
         return self.player.name
+    
+    @property
+    def treasures(self):
+        return self.player.treasures

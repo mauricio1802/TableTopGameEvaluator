@@ -2,7 +2,7 @@ from itertools import groupby, filterfalse
 from random import randint, choice, shuffle, uniform
 from Game.Game import Game, GameDescriptor, GameNode
 from Game.State import create_game_state, print_state
-from numeric_dungeon_states import NMTableState, NMPlayerState
+from numeric_dungeon_states import NDTableState, NDPlayerState
 from numeric_dungeon_domain import Monster, DungeonMaster, DungeonMap, MasterKey, EnergyDrink
 from numeric_dungeon_plays import DecisionYes
 from numeric_dungeon_player import NDPlayer, NDPlayerAgent
@@ -69,13 +69,11 @@ def move_dm_condition(state):
 def activate_treasure(state, play):
     actual_player_index = state.table_state.actual_player
     actual_player = state.players_state[actual_player_index]
-    print(play.indexes)
-    print(actual_player.player._treasures)
-    for tre in sorted(play.indexes, reverse=True):
-        tre = actual_player.get_treasure(tre)
-        state = tre.reduce(state)
-        actual_player.use_treasure(tre)
 
+    for index in sorted(play.indexes, reverse=True):
+        treasure = actual_player.treasures[index]
+        state = treasure.reduce(state)
+        actual_player.remove_treasure(treasure)
 
     return state
 
@@ -143,7 +141,7 @@ def prepare_battles(state):
     if t_state.last_move_failed:
         dm = t_state.dungeon_master
         t_state.targets = [ dm ]
-        t_state.attacker = next(filter(lambda h : isinstance(h, NMPlayerState), t_state[dm.position].habitants))
+        t_state.attacker = next(filter(lambda h : isinstance(h, NDPlayerState), t_state[dm.position].habitants))
     else:
         p_state = state.players_state
         actual_player_index = t_state.actual_player
@@ -166,7 +164,7 @@ def start_battle_pve__battle_init_condition(state):
 
 @num_dg_game.goto("start_battle", "pvp_battle_ask")
 def start_battle__pvp_battle_condition(state):
-    return isinstance(state.table_state.target, NMPlayerState) 
+    return isinstance(state.table_state.target, NDPlayerState) 
 
 
 @num_dg_game.action("pve_battle_init")
@@ -188,13 +186,17 @@ def pve_battle_response(state, play):
         hit(t_state.attacker, t_state.target)
     else:
         hit(t_state.target, t_state.attacker)
-    t_state.target
+    #t_state.target
     return state
 
 @num_dg_game.goto("pve_battle", "pve_battle")
 def pve_battle__pve_battle(state):
     t_state = state.table_state
     return all([ t_state.target.in_attack, t_state.target.is_alive(), t_state.attacker.is_alive() ])
+
+@num_dg_game.goto("pve_battle", "start_battle")
+def pve_battle__start_battle(state):
+    return len(state.table_state.targets) != 0
 
 @num_dg_game.action("pvp_battle_ask", True)
 def pvp_battle_ask(state, play):
@@ -214,6 +216,10 @@ def pvp_battle_response(state, play):
 def pvp_battle__pvp_battle(state):
     t_state = state.table_state
     return t_state.attacker.is_alive() and t_state.target.is_alive()
+
+@num_dg_game.goto("pvp_battle_answer", "start_battle")
+def pvp_battle_answer__start_battle(state):    
+    return len(state.table_state.targets) != 0
 
 @num_dg_game.action("end_turn")
 def shrink_board(state):
@@ -274,8 +280,9 @@ def change_turn(state):
 def hit(attacker, target):
     target.damage() 
     if not target.hp:
-        for treasure in target.get_treasures():
+        for treasure in target.treasures[::-1]:
             attacker.add_treasure(treasure)
+            target.remove_treasure(treasure)
 
 def get_neigs(pos, max_row, max_col):
     dir_array = [(1, 0), (-1, 0), (0, 1), (0, -1)]
@@ -283,6 +290,8 @@ def get_neigs(pos, max_row, max_col):
     neigs = [ (pos[0] + x[0], pos[1] + x[1]) for x in dir_array if valid_pos((pos[0] + x[0], pos[1] + x[1])) ]
     return neigs
     
+
+@num_dg_game.who_plays()
 def who_plays(state, node):
     t_state = state.table_state
     p_state = state.players_state
@@ -292,25 +301,27 @@ def who_plays(state, node):
         return p_state.index(t_state.attacker)
     return t_state.actual_player
 
+
+@num_dg_game.end()
 def end_condition(state):
     for player in state.players_state:
         if player.have_win_requirements():
             return True
     return all(map(lambda p : not p.is_alive(), state.players_state))
         
-if __name__ == '__main__':
-    cards = [Monster(0, 0, uniform(0, 1)) for _ in range(35)] + [DungeonMaster(0, 0, uniform(0.3, 1))]
-    choice(cards[:35]).add_treasure(DungeonMap())
-    for _ in range(2):
-        choice(cards[:35]).add_treasure(EnergyDrink())
-    shuffle(cards)
-    for i, card in enumerate(cards):
-        card.move(i//6, i%6)
-    board = NMTableState(6, cards)
-    p1 = NDPlayerAgent(uniform(0.2, 1))
-    p2 = NDPlayerAgent(uniform(0.2, 1))  
-    g = num_dg_game.get_game_instance(create_game_state(board, [NMPlayerState("p1", 4 ), NMPlayerState("p2", 4)]),
-                                     [p1, p2], who_plays, end_condition)
-    for s in g:
-        print_state(s)
-        input()
+#if __name__ == '__main__':
+#    cards = [Monster(0, 0, uniform(0, 1)) for _ in range(35)] + [DungeonMaster(0, 0, uniform(0.3, 1))]
+#    choice(cards[:35]).add_treasure(DungeonMap())
+#    for _ in range(2):
+#        choice(cards[:35]).add_treasure(EnergyDrink())
+#    shuffle(cards)
+#    for i, card in enumerate(cards):
+#        card.move(i//6, i%6)
+#    board = NMTableState(6, cards)
+#    p1 = NDPlayerAgent(uniform(0.2, 1))
+#    p2 = NDPlayerAgent(uniform(0.2, 1))  
+#    g = num_dg_game.get_game_instance(create_game_state(board, [NMPlayerState("p1", 4 ), NMPlayerState("p2", 4)]),
+#                                     [p1, p2])
+#    for s in g:
+#        print_state(s)
+#        input()
