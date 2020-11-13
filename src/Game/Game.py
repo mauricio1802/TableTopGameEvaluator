@@ -43,7 +43,6 @@ class Game:
     
     def __next__(self):
         actual = self.nodes[self.actual]
-        print(f"NOW ON {self.actual}")
         #Execute previous actions
         for node in actual.prev:
             for require_play, act in self.nodes[node].actions:
@@ -96,20 +95,33 @@ class Game:
 
 class GameDescriptor:
     def __init__(self, start_node, nodes):
-        self.start = start_node
-        self.nodes = { DEFAULT_NODE_NAME : NoPossiblePathNode }
-        self.nodes.update({ node.name : node for node in nodes })
-        self.go_table = { node.name : [(False, node.default, lambda _ : True)] for node in nodes } 
+        self._start = start_node
+        self._nodes = { DEFAULT_NODE_NAME : NoPossiblePathNode }
+        self._nodes.update({ node.name : node for node in nodes })
+        self._go_table = { node.name : [(False, node.default, lambda _ : True)] for node in nodes } 
+        self._end_condition = None 
+        self._who_plays = None
+        
     
     def action(self, node, require_play = False):
         def f(fn):
-            self.nodes[node].add_action((require_play, fn))
+            self._nodes[node].add_action((require_play, fn))
         return f
     
     def goto(self, node_from, node_to, require_play = False):
         def f(fn):
-            self.go_table[node_from].append((require_play, node_to, fn))
+            self._go_table[node_from].append((require_play, node_to, fn))
         return f
     
-    def get_game_instance(self, state, players, who_plays, end_condition):
-        return Game(self.start, self.nodes, self.go_table, state, players, who_plays, end_condition) 
+    def end(self):
+        def f(fn):
+            self._end_condition = fn
+        return f
+    
+    def who_plays(self):
+        def f(fn):
+            self._who_plays = fn
+        return f
+    
+    def get_game_instance(self, state, players):
+        return Game(self._start, self._nodes, self._go_table, state, players, self._who_plays, self._end_condition) 
