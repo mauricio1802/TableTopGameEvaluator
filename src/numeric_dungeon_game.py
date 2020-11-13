@@ -69,9 +69,10 @@ def move_dm_condition(state):
 def activate_treasure(state, play):
     actual_player_index = state.table_state.actual_player
     actual_player = state.players_state[actual_player_index]
-
-    for tre in play.indexes:
-        tre = actual_player.get_treasure(play.index)
+    print(play.indexes)
+    print(actual_player.player._treasures)
+    for tre in sorted(play.indexes, reverse=True):
+        tre = actual_player.get_treasure(tre)
         state = tre.reduce(state)
         actual_player.use_treasure(tre)
 
@@ -255,6 +256,10 @@ def end_turn(state):
 @num_dg_game.action("end_turn")
 def change_turn(state):
     n_players = len(state.players_state)
+    for p in state.players_state:
+        if p.is_alive():
+            p.turns_alive += 1
+    state.table_state.total_turns += 1
     actual_player = (state.table_state.actual_player + 1) % n_players
     players = state.players_state
     

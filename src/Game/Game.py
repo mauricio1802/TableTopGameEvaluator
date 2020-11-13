@@ -43,7 +43,7 @@ class Game:
     
     def __next__(self):
         actual = self.nodes[self.actual]
-        print(f"NOW ON {self.actual}")
+        #print(f"NOW ON {self.actual}")
         #Execute previous actions
         for node in actual.prev:
             for require_play, act in self.nodes[node].actions:

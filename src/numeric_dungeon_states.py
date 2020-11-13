@@ -18,7 +18,7 @@ class NMTableState(TableState):
         self.attacker = None
         self.targets = []
         self.target = None
-
+        self.total_turns = 0
     
     def __getitem__(self, pos):
        # n_col = len(self.board[0])
@@ -50,6 +50,7 @@ class NMPlayerState(PlayerState):
     def __init__(self, name, hp, treasures = None):
         treasures = treasures if treasures else []
         self.player = Player(name, hp, treasures)
+        self.turns_alive = 0
 
     
     def add_treasure(self, treasure):
