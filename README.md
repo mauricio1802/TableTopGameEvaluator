@@ -27,5 +27,12 @@ Nuestra forma para definir las reglas que indican como se ejecutan las acciones 
 ## Game
 - GameNode:
     Es la clase que usamos para definir un nodo o vertice del grafo que describe nuestro juego, entre sus propiedades se encuentran:
-    - name: el nombre que identifica al nodo
-    - prev: una lista de nombre de otros nodos, esto se utiliza para definir un conjunto de acciones que queremos que se ejecuten antes que las acciones del nodo actual, este atributo surge:w
+    - name: El identificador del nodo.
+    - default: El identificador del nodo al cual dirigirse al terminar las acciones si no hay ninguna arista que cumpla la condicion para recorrerla, en el caso de que este no se especifique se pone por defecto un nodo que llamamos sumidero, existe para descubrir posibles `huecos` en la logica del juego.
+    - actions: La lista de acciones que conforman el nodo.
+
+- Game:
+    Esta clase representa una instancia del juego y podemos iterar sobre ella para ir observando los distintos estados por los que atraviesa el juego, al terminar el juego el iterador se dentendra.
+
+- GameDescriptor:
+    Es la clase que utilizamos para describir un juego
