@@ -27,8 +27,10 @@ def calculate_entertaiment(sims_results):
         players_states = last_states.players_state
         players_uncertainty = []
         players_duration = []
+        players_e_decisions = []
         
         for player in sim[1]:
+            players_e_decisions.append(mean(player.decisions_count))
             player_uncertainty = mean(player.decisions_count) * (1 - player.knowledge)
             players_uncertainty.append(player_uncertainty)
         
@@ -36,8 +38,9 @@ def calculate_entertaiment(sims_results):
             players_duration.append(player.turns_alive)
         
         e_duration = mean(players_duration)
-        sim_entertaiment = mean([ uncert * e_duration for uncert in players_uncertainty ])
-        simulations_entertaiment.append(sim_entertaiment)
+        #sim_entertaiment = mean([ uncert * e_duration for uncert in players_uncertainty ])
+        s = [ 1/(abs(players_e_decisions[i]/2 - players_uncertainty[i]) * (1 + abs(e_duration - players_duration[i]))) for i in range(len(players_states))]
+        simulations_entertaiment.append(mean(s))
     
     return mean(simulations_entertaiment)
             
@@ -65,7 +68,7 @@ def create_generate_initial_state_function(n_board, n_players, diff_gen):
         cards = [Monster(0, 0, next(diff_gen)) for _ in range(n_board ** 2 - 1)]
         cards += [DungeonMaster(0, 0, uniform(0.3, 1))]
         choice(cards[:-1]).add_treasure(DungeonMap())
-        for n, item in [(30, EnergyDrink)]:
+        for n, item in [(35, EnergyDrink)]:
             for m in sample(cards[:-1], n):
                 m.add_treasure(item())
         shuffle(cards)
@@ -89,11 +92,11 @@ def create_players_generator(n_players, knowledge_generator):
 if __name__ == '__main__':
     state_generator = create_generate_initial_state_function(6, 3, diff_gen1())
     players_generator = create_players_generator(3, knowledge_gen(0.5, 1))
-    b = calculate_metric(num_dg_game, state_generator, players_generator, 100, calculate_b)
+    b = calculate_metric(num_dg_game, state_generator, players_generator, 10, calculate_b)
     print(b)
 
     state_generator = create_generate_initial_state_function(6, 3, diff_gen2(0.5, 1/b))
     players_generator = create_players_generator(3, knowledge_gen(0.5, 1/b))
-    entertaiment = calculate_metric(num_dg_game, state_generator, players_generator, 100, calculate_entertaiment) 
+    entertaiment = calculate_metric(num_dg_game, state_generator, players_generator, 10, calculate_entertaiment) 
     print(entertaiment)
             
