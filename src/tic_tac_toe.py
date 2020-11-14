@@ -5,9 +5,8 @@ from Game.Player import Player
 ttt = GameDescriptor(
             "playO", 
             [
-                GameNode("playX", after = ["changeTurn"], default = "playO"), 
-                GameNode("playO", after = ["changeTurn"], default = "playX"),
-                GameNode("changeTurn")
+                GameNode("playX", default = "playO"), 
+                GameNode("playO", default = "playX")
             ])
 
 
@@ -26,6 +25,12 @@ class TTTTableState(TableState):
         s5 = f"{char[self.board[6]]} | {char[self.board[7]]} | {char[self.board[8]]}"
         return "\n".join(["\n",s1, s2, s3, s4, s5, "\n"])
 
+@ttt.action("playX", precedence=1)
+@ttt.action("playO", precedence=1)
+def change_turn(state):
+    state.table_state.player_in_turn = (state.table_state.player_in_turn + 1) % 2
+    return state
+
 @ttt.action("playO", True)
 def playO(state, pos):
     table_state = state.table_state
@@ -39,17 +44,13 @@ def playX(state, pos):
     table_state.board[pos[0] * 3 + pos[1]] = 1
     return create_game_state(table_state, [])
     
-@ttt.action("changeTurn")
-def change_turn(state):
-    state.table_state.player_in_turn = (state.table_state.player_in_turn + 1) % 2
-    return state
 
 class TTTHumanPlayer(Player):
     def __init__(self, name, player):
         self.name = name
         self.player = player
     
-    def get_play(self, state):
+    def get_play(self, state, node):
         row = int(input("Insert row to play:\n"))
         col = int(input("Insert col to play:\n"))
         if self.player == 0:
@@ -59,10 +60,11 @@ class TTTHumanPlayer(Player):
         
     
 
-
-def ttt_who_plays(state):
+@ttt.who_plays()
+def ttt_who_plays(state, node):
     return state.table_state.player_in_turn
 
+@ttt.end()
 def ttt_end_condition(state):
     board = state.table_state.board
     result = [-1, -1]
@@ -86,7 +88,7 @@ def ttt_end_condition(state):
 
 
 if __name__ == '__main__':
-    g = ttt.get_game_instance(create_game_state(TTTTableState(), []), [TTTHumanPlayer("O", 0), TTTHumanPlayer("X", 1)], ttt_who_plays, ttt_end_condition)
+    g = ttt.get_game_instance(create_game_state(TTTTableState(), []), [TTTHumanPlayer("O", 0), TTTHumanPlayer("X", 1)])
     for s in g:
         print(s) 
     print(g.end_result)
