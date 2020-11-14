@@ -39,7 +39,11 @@ def calculate_entertaiment(sims_results):
         
         e_duration = mean(players_duration)
         #sim_entertaiment = mean([ uncert * e_duration for uncert in players_uncertainty ])
-        s = [ 1/(abs(players_e_decisions[i]/2 - players_uncertainty[i]) * (1 + abs(e_duration - players_duration[i]))) for i in range(len(players_states))]
+        s = [ 1/(
+                    (abs(players_e_decisions[i]/2 - players_uncertainty[i]) 
+                    * (1 + abs(e_duration - players_duration[i]))) 
+                    * players_duration[i]
+                ) for i in range(len(players_states))]
         simulations_entertaiment.append(mean(s))
     
     return mean(simulations_entertaiment)
