@@ -19,6 +19,7 @@ class NDTableState(TableState):
         self.targets = []
         self.target = None
         self.total_turns = 0
+        self.move_times = 0
     
     def __getitem__(self, pos):
        return self.board[pos[0]][pos[1]]
@@ -45,6 +46,7 @@ class NDPlayerState(PlayerState):
     def __init__(self, name, hp, treasures = None):
         self.player = Player(name, hp, treasures)
         self.turns_alive = 0
+        self.questions_answered = 0
 
     def add_treasure(self, treasure):
         self.player.add_treasure(treasure)

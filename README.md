@@ -1,7 +1,7 @@
 # TableTopGameEvaluator
 El paquete Game brinda una arquitectura para modelar y evaluar distintas métricas de juegos.
 
-## Definicion de juego
+## Definición de juego
 Vemos un juego como una secuencia de acciones que tienen consecuencias sobre el estado de los elementos que conforman el juego.
 Estas acciones van ocurriendo segun las reglas que indique el juego hasta que se llega a un estado de los elementos en el que se considera que el juego ha terminado, a este estado lo llamaremos `estado final`.
 Para definir las reglas que indican como se ejecutan las acciones usamos un grafo, donde cada vértice contiene una serie de acciones que se ejecutan secuencialmente. Una partida consiste en comenzar con un `estado inicial` e ir moviéndonos por el grafo hasta encontrarnos en un estado final. A continuación iremos por los distintos módulos del paquete explicando las clases y funciones que brindamos para definir y evaluar los juegos.

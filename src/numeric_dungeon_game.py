@@ -30,6 +30,7 @@ num_dg_game = GameDescriptor("move",
 def move_player(state, play):
     board = state.table_state.board 
     t_state = state.table_state
+    t_state.move_times += 1
     actual_player_index = t_state.actual_player
     actual_player = state.players_state[actual_player_index]
    
@@ -182,11 +183,11 @@ def pve_battle(state):
 def pve_battle_response(state, play):
     t_state = state.table_state
     t_state.target.attack()
+    t_state.attacker.questions_answered += 1
     if t_state.question <= play.answer:
         hit(t_state.attacker, t_state.target)
     else:
         hit(t_state.target, t_state.attacker)
-    #t_state.target
     return state
 
 @num_dg_game.goto("pve_battle", "pve_battle")
@@ -206,6 +207,7 @@ def pvp_battle_ask(state, play):
 @num_dg_game.action("pvp_battle_answer", True)
 def pvp_battle_response(state, play):
     t_state = state.table_state
+    t_state.attacker.questions_answered += 1
     if t_state.question <= play.answer:
         hit(t_state.attacker, t_state.target)
     else:
@@ -256,7 +258,6 @@ def end_turn(state):
     t_state.attacker = None
     t_state.target = None
     t_state.question = None
-
     return state
 
 @num_dg_game.action("end_turn")

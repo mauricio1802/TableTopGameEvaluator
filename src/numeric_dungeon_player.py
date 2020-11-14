@@ -42,9 +42,11 @@ class NDPlayerAgent(Player):
         self.knowledge = knowledge
         self.to_activate = []
         self.decisions_count = []
+        self.move_times = 0
     
     def get_play(self, state, node):
         if node == "move":
+            self.move_times += 1
             actual_index = state.table_state.actual_player
             actual_player = state.players_state[actual_index]
             treasures = actual_player.player._treasures
