@@ -1,3 +1,4 @@
+from math import sqrt
 from itertools import chain
 from random import normalvariate, choice, sample, shuffle, uniform
 from numpy import mean
@@ -49,14 +50,13 @@ def calculate_entertaiment2(sims_results):
             
 
 def calculate_entertaiment1(sims_result):
-    simulations_entertaiment = []
+    simulations_results = []
 
     for sim in sims_result:
         players_complexity = []
         players_uncertainty = []
         turns_duration = []
         players_entertaiment = []
-
         for i in range(len(sim[1])):
             total_plays = sum(sim[1][i].decisions_count)
             questions_answered = sim[0][-1].players_state[i].questions_answered
@@ -65,7 +65,6 @@ def calculate_entertaiment1(sims_result):
             players_uncertainty.append(mean(sim[1][i].decisions_count) * ( 1 - sim[1][i].knowledge ))
 
         players_turns_alive = [len(p.decisions_count) for p in sim[1]]
-
         for i in range(max(players_turns_alive)):
             plays_in_turn = []
             for j in range(len(sim[1])):
@@ -76,27 +75,28 @@ def calculate_entertaiment1(sims_result):
             turns_duration.append(mean(plays_in_turn) * len(plays_in_turn))
 
         e_turn_duration = mean(turns_duration)
-        game_duration = sim[0][-1].table_state.total_turns * e_turn_duration
-
+        game_duration = max(players_turns_alive) * e_turn_duration
         participation = []
         for player_turns_alive in players_turns_alive:
-            participation.append(mean(turns_duration[:player_turns_alive]) * player_turns_alive)
+            participation.append(e_turn_duration * player_turns_alive)
         
+        players_participation = []
+        players_hope = []
         for i in range(len(sim[1])):
             player_participation = participation[i] / game_duration
+            players_participation.append(player_participation)
             player_hope = players_uncertainty[i] / players_complexity[i]
+            players_hope.append(player_hope)
             players_entertaiment.append( player_hope * player_participation )
-        
-        simulations_entertaiment.append(mean(players_entertaiment))
+
+        simulations_results.append((mean(players_participation), mean(players_hope), mean(players_complexity), mean(players_uncertainty), mean(players_entertaiment))) 
+
     
-    return mean(simulations_entertaiment)
-
-
-
-
-
-
-
+    results = []
+    for i in range(5):
+        metric = [x[i] for x in simulations_results]
+        results.append(mean(metric))
+    return results
 
 
 
@@ -146,11 +146,14 @@ def create_players_generator(n_players, knowledge_generator):
 if __name__ == '__main__':
     state_generator = create_generate_initial_state_function(6, 3, diff_gen1())
     players_generator = create_players_generator(3, knowledge_gen(0.5, 1))
-    b = calculate_metric(num_dg_game, state_generator, players_generator, 10, calculate_b)
-    print(b)
+    b = calculate_metric(num_dg_game, state_generator, players_generator, 100, calculate_b)
+    print("E(b): ",b)
 
-    state_generator = create_generate_initial_state_function(6, 3, diff_gen2(0.5, 1/b))
-    players_generator = create_players_generator(3, knowledge_gen(0.5, 1/b))
-    entertaiment = calculate_metric(num_dg_game, state_generator, players_generator, 10, calculate_entertaiment1) 
-    print(entertaiment)
-            
+    state_generator = create_generate_initial_state_function(6, 3, diff_gen2(0.8, sqrt(1/b)))
+    players_generator = create_players_generator(3, knowledge_gen(0.5, sqrt(1/b)))
+    results = calculate_metric(num_dg_game, state_generator, players_generator, 100, calculate_entertaiment1) 
+    print("Participacion: ",results[0])
+    print("Esperanza: ", results[1])
+    print("Complejidad: ", results[2])
+    print("Incertidumbre: ", results[3])
+    print("Entretenimiento ", results[4])
