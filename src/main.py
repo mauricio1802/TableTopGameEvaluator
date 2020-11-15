@@ -123,8 +123,8 @@ def create_generate_initial_state_function(n_board, n_players, diff_gen):
         cards += [DungeonMaster(0, 0, uniform(0.3, 1))]
         choice(cards[:-1]).add_treasure(DungeonMap())
         for n, item in [(35, EnergyDrink)]:
-            for m in sample(cards[:-1], n):
-                m.add_treasure(item())
+            for _ in range(n)
+                choice(cards[:35]).add_treasure(item())
         shuffle(cards)
 
         for i, card in enumerate(cards):
@@ -149,8 +149,8 @@ if __name__ == '__main__':
     b = calculate_metric(num_dg_game, state_generator, players_generator, 100, calculate_b)
     print("E(b): ",b)
 
-    state_generator = create_generate_initial_state_function(6, 3, diff_gen2(0.8, sqrt(1/b)))
-    players_generator = create_players_generator(3, knowledge_gen(0.5, sqrt(1/b)))
+    state_generator = create_generate_initial_state_function(6, 3, diff_gen2(0.5, sqrt(1/b)))
+    players_generator = create_players_generator(3, knowledge_gen(0.2, sqrt(1/b)))
     results = calculate_metric(num_dg_game, state_generator, players_generator, 100, calculate_entertaiment1) 
     print("Participacion: ",results[0])
     print("Esperanza: ", results[1])
