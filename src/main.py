@@ -10,6 +10,9 @@ from numeric_dungeon_states import NDPlayerState, NDTableState
 from numeric_dungeon_player import NDPlayerAgent
 
 
+KNOWLEDGE_MEAN = 0.5
+ITEMS_NUMBER = 35
+
 def calculate_b(sims_results):
    players_per_sim = [sim[1] for sim in sims_results]
    players = list(chain(*players_per_sim))
@@ -62,7 +65,7 @@ def calculate_entertaiment1(sims_result):
         for i in range(len(sim[1])):
             total_plays = sum(sim[1][i].decisions_count)
             questions_answered = sim[0][-1].players_state[i].questions_answered
-            players_complexity.append(total_plays + ( 1 - sim[1][i].knowledge ) * (questions_answered * players_turns_alive[i]))
+            players_complexity.append(total_plays + ( 1 - sim[1][i].knowledge ) * (questions_answered / players_turns_alive[i]))
             players_uncertainty.append(mean(sim[1][i].decisions_count) * ( 1 - sim[1][i].knowledge ))
 
         for i in range(max(players_turns_alive)):
@@ -122,9 +125,9 @@ def create_generate_initial_state_function(n_board, n_players, diff_gen):
         cards = [Monster(0, 0, next(diff_gen)) for _ in range(n_board ** 2 - 1)]
         cards += [DungeonMaster(0, 0, uniform(0.3, 1))]
         choice(cards[:-1]).add_treasure(DungeonMap())
-        for n, item in [(35, EnergyDrink)]:
-            for _ in range(n)
-                choice(cards[:35]).add_treasure(item())
+        for n, item in [(ITEMS_NUMBER, EnergyDrink)]:
+            for _ in range(n):
+                choice(cards).add_treasure(item())
         shuffle(cards)
 
         for i, card in enumerate(cards):
@@ -150,7 +153,7 @@ if __name__ == '__main__':
     print("E(b): ",b)
 
     state_generator = create_generate_initial_state_function(6, 3, diff_gen2(0.5, sqrt(1/b)))
-    players_generator = create_players_generator(3, knowledge_gen(0.2, sqrt(1/b)))
+    players_generator = create_players_generator(3, knowledge_gen(KNOWLEDGE_MEAN, sqrt(1/b)))
     results = calculate_metric(num_dg_game, state_generator, players_generator, 100, calculate_entertaiment1) 
     print("Participacion: ",results[0])
     print("Esperanza: ", results[1])
