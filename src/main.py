@@ -57,14 +57,14 @@ def calculate_entertaiment1(sims_result):
         players_uncertainty = []
         turns_duration = []
         players_entertaiment = []
+        players_turns_alive = [len(p.decisions_count) for p in sim[1]]
+
         for i in range(len(sim[1])):
             total_plays = sum(sim[1][i].decisions_count)
             questions_answered = sim[0][-1].players_state[i].questions_answered
-            players_complexity.append(total_plays + ( 1 - sim[1][i].knowledge ) * questions_answered)
-
+            players_complexity.append(total_plays + ( 1 - sim[1][i].knowledge ) * (questions_answered * players_turns_alive[i]))
             players_uncertainty.append(mean(sim[1][i].decisions_count) * ( 1 - sim[1][i].knowledge ))
 
-        players_turns_alive = [len(p.decisions_count) for p in sim[1]]
         for i in range(max(players_turns_alive)):
             plays_in_turn = []
             for j in range(len(sim[1])):
